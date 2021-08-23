@@ -1,4 +1,7 @@
-import hooks from "async_hooks";
+let hooks: typeof import("async_hooks");
+try {
+    hooks = require("async_hooks");
+} catch (ex) {}
 
 export interface GulogSettings {
     /**
@@ -93,9 +96,6 @@ export class GulogProcess {
 
     warn(data: any, ...moreData: any[]) {
         this.customLog("warn", [data, ...moreData]);
-        if (!globalSettings.muteConsole) {
-            console.warn(data, ...moreData);
-        }
     }
 
     /**
