@@ -1,3 +1,5 @@
+import hooks from "async_hooks";
+
 export interface GulogSettings {
     /**
      * The token (created on the gulog panel) for this software
@@ -17,6 +19,10 @@ let globalSettings: GulogSettings;
 
 export function init(settings: GulogSettings) {
     globalSettings = settings;
+
+    if (hooks) {
+        console.log("[gulog] Detected nodejs: using async_hooks to create 'thread-local' storage.");
+    }
 }
 
 export type Severity = "info" | "warn" | "error";
@@ -66,18 +72,30 @@ export class GulogProcess {
 
     log(data: any, ...moreData: any[]) {
         this.customLog("info", [data, ...moreData]);
+        if (!globalSettings.muteConsole) {
+            console.log(data, ...moreData);
+        }
     }
 
     info(data: any, ...moreData: any[]) {
         this.customLog("info", [data, ...moreData]);
+        if (!globalSettings.muteConsole) {
+            console.info(data, ...moreData);
+        }
     }
 
     error(data: any, ...moreData: any[]) {
         this.customLog("error", [data, ...moreData]);
+        if (!globalSettings.muteConsole) {
+            console.error(data, ...moreData);
+        }
     }
 
     warn(data: any, ...moreData: any[]) {
         this.customLog("warn", [data, ...moreData]);
+        if (!globalSettings.muteConsole) {
+            console.warn(data, ...moreData);
+        }
     }
 
     /**
@@ -97,5 +115,3 @@ export class GulogProcess {
         );
     }
 }
-
-let process = new GulogProcess("user-create");
