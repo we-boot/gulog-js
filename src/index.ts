@@ -74,55 +74,63 @@ export class GulogProcess {
     }
 
     private customLog(severity: Severity, data: any[]) {
-        this.spawnTask.then(() =>
-            fetch(this.settings.endpoint + "/api/log", {
-                method: "POST",
-                body: JSON.stringify({
-                    data: data.length === 0 ? data[0] : data,
-                    severity: severity,
-                    processId: this.processId,
-                    token: this.settings.token,
-                }),
+        this.spawnTask
+            .then(() =>
+                fetch(this.settings.endpoint + "/api/log", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        data: data.length === 0 ? data[0] : data,
+                        severity: severity,
+                        processId: this.processId,
+                        token: this.settings.token,
+                    }),
+                })
+            )
+            .catch((ex) => {
+                console.warn("could not log to gulog:", ex.message);
             })
-        );
+            .finally(() => {
+                if (!this.settings.muteConsole) {
+                    switch (severity) {
+                        default:
+                        case "info":
+                            console.log(`[${this.toString()}] info`, ...data);
+                            return;
+                        case "error":
+                            console.error(`[${this.toString()}] error`, ...data);
+                            return;
+                        case "warn":
+                            console.warn(`[${this.toString()}] warn`, ...data);
+                            return;
+                    }
+                }
+            });
     }
 
     log(data: any, ...moreData: any[]) {
         this.customLog("info", [data, ...moreData]);
-        if (!this.settings.muteConsole) {
-            console.log(`[${this.tag()} ${this.type}] info`, data, ...moreData);
-        }
     }
 
     info(data: any, ...moreData: any[]) {
         this.customLog("info", [data, ...moreData]);
-        if (!this.settings.muteConsole) {
-            console.info(`[${this.tag()} ${this.type}] info`, data, ...moreData);
-        }
     }
 
     error(data: any, ...moreData: any[]) {
         this.customLog("error", [data, ...moreData]);
-        if (!this.settings.muteConsole) {
-            console.error(`[${this.tag()} ${this.type}] error`, data, ...moreData);
-        }
     }
 
     warn(data: any, ...moreData: any[]) {
         this.customLog("warn", [data, ...moreData]);
-        if (!this.settings.muteConsole) {
-            console.warn(`[${this.tag()} ${this.type}] warn`, data, ...moreData);
-        }
     }
 
     /**
      * @param exitCode An exit code describing the process' exit cause, examples: `user-create-failed`, `failed`, `ok`
      */
     end(exitCode: string) {
-        console.log(`[${this.tag()} ${this.type}] end!`);
+        console.log(`[${this.toString()}] end!`);
         this.spawnTask.then(() =>
             fetch(this.settings.endpoint + "/api/process", {
-                method: "PUT",
+                method: "DELETE",
                 body: JSON.stringify({
                     processId: this.processId,
                     token: globalSettings.token,
@@ -132,11 +140,11 @@ export class GulogProcess {
         );
     }
 
-    tag(): string {
+    toString(): string {
         if (this.parent) {
-            return this.parent.tag() + " > " + (this.processId || "?");
+            return this.parent.toString() + " > " + `${this.type}#${this.processId || "?"}`;
         } else {
-            return String(this.processId || "?");
+            return `${this.type}#${this.processId || "?"}`;
         }
     }
 }
