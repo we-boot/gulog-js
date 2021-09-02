@@ -81,7 +81,6 @@ export class GulogProcess {
         }).then(async (res) => {
             if (res.ok) {
                 let data = await res.json();
-                console.log("spawn process", data);
                 this.processId = data.processId;
             } else {
                 console.error("could not create gulog process: " + (await res.text()));
