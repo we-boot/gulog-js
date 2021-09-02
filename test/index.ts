@@ -1,8 +1,9 @@
 import { init, GulogProcess } from "gulog-js";
 
 init({
-    token: "asdfasdf",
+    token: "pm6t6du6pCKgefUYdM",
     version: "1.0.0",
+    endpoint: "http://localhost:3000"
 });
 
 async function delay(ms: number) {
@@ -19,3 +20,5 @@ async function main() {
 
     process.end("ok");
 }
+
+main();
