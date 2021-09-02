@@ -1,3 +1,5 @@
+import fetch from "node-fetch";
+
 export interface GulogSettings {
     /**
      * The token (created on the gulog panel) for this software
@@ -25,7 +27,13 @@ export function init(settings: GulogSettings) {
     };
 }
 
-export type Severity = "info" | "warn" | "error";
+export enum Severity {
+    Info = 0,
+    Success = 5,
+    Warn = 10,
+    Error = 20,
+    Critical = 30,
+}
 
 function removeUndefinedFields(obj: any) {
     Object.keys(obj).forEach((key) => obj[key] === undefined && delete obj[key]);
@@ -43,7 +51,7 @@ export class GulogProcess {
      * @param initiator Custom data about the initiator of this process. Examples: user, token
      * @param parentProcess The parent process that initiated this process.
      */
-    constructor(type: string, initiator?: any, parentProcess?: GulogProcess, overrideSettings?: GulogSettings) {
+    constructor(type: string, initiator?: any, parentProcess?: GulogProcess, overrideSettings: Partial<GulogSettings> = {}) {
         this.type = type;
         this.parent = parentProcess;
         this.processId = null;
@@ -60,17 +68,25 @@ export class GulogProcess {
 
         this.spawnTask = fetch(this.settings.endpoint + "/api/process", {
             method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({
+                name: type,
                 softwareVersion: this.settings.version,
                 token: this.settings.token,
                 initiatorData: initiator,
                 userAgent: agent,
             }),
-        })
-            .then((res) => res.json())
-            .then((data) => {
+        }).then(async (res) => {
+            if (res.ok) {
+                let data = await res.json();
+                console.log("spawn process", data);
                 this.processId = data.processId;
-            });
+            } else {
+                console.error("could not create gulog process: " + (await res.text()));
+            }
+        });
     }
 
     private customLog(severity: Severity, data: any[]) {
@@ -78,6 +94,9 @@ export class GulogProcess {
             .then(() =>
                 fetch(this.settings.endpoint + "/api/log", {
                     method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
                     body: JSON.stringify({
                         data: data.length === 0 ? data[0] : data,
                         severity: severity,
@@ -86,21 +105,23 @@ export class GulogProcess {
                     }),
                 })
             )
-            .catch((ex) => {
-                console.warn("could not log to gulog:", ex.message);
+            .then(async (res) => {
+                if (!res.ok) {
+                    console.warn("could not log to gulog:", await res.text(), res.status);
+                }
             })
             .finally(() => {
                 if (!this.settings.muteConsole) {
                     switch (severity) {
                         default:
-                        case "info":
+                        case Severity.Info:
                             console.log(`[${this.toString()}] info`, ...data);
                             return;
-                        case "error":
-                            console.error(`[${this.toString()}] error`, ...data);
-                            return;
-                        case "warn":
+                        case Severity.Warn:
                             console.warn(`[${this.toString()}] warn`, ...data);
+                            return;
+                        case Severity.Error:
+                            console.error(`[${this.toString()}] error`, ...data);
                             return;
                     }
                 }
@@ -108,19 +129,19 @@ export class GulogProcess {
     }
 
     log(data: any, ...moreData: any[]) {
-        this.customLog("info", [data, ...moreData]);
+        this.customLog(Severity.Info, [data, ...moreData]);
     }
 
     info(data: any, ...moreData: any[]) {
-        this.customLog("info", [data, ...moreData]);
+        this.customLog(Severity.Info, [data, ...moreData]);
     }
 
     error(data: any, ...moreData: any[]) {
-        this.customLog("error", [data, ...moreData]);
+        this.customLog(Severity.Error, [data, ...moreData]);
     }
 
     warn(data: any, ...moreData: any[]) {
-        this.customLog("warn", [data, ...moreData]);
+        this.customLog(Severity.Warn, [data, ...moreData]);
     }
 
     /**
@@ -131,11 +152,18 @@ export class GulogProcess {
         this.spawnTask.then(() =>
             fetch(this.settings.endpoint + "/api/process", {
                 method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify({
                     processId: this.processId,
-                    token: globalSettings.token,
+                    token: this.settings.token,
                     exitCode: exitCode,
                 }),
+            }).then(async (res) => {
+                if (!res.ok) {
+                    console.warn("could not end gulog process:", await res.text());
+                }
             })
         );
     }
