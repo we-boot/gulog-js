@@ -1,7 +1,6 @@
-import { init, GulogProcess, spawn, getCurrentProcess } from "gulog-api";
+import { init, GulogProcess } from "gulog-js";
 
 init({
-    muteConsole: false,
     token: "asdfasdf",
     version: "1.0.0",
 });
@@ -10,22 +9,13 @@ async function delay(ms: number) {
     await new Promise((res) => setTimeout(res, ms));
 }
 
-spawn("create-math", async () => {
-    getCurrentProcess()!.log("calculating...");
+async function main() {
+    let process = new GulogProcess("calculate-math");
+    process.log("starting...");
+
     await delay(1000);
 
-    await Promise.all([
-        spawn("more-math", async () => {
-            await delay(500);
-            return ["ok"];
-        }),
-        spawn("more-math", async () => {
-            await delay(500);
-            return ["ok"];
-        }),
-    ]);
+    process.log("calculating done");
 
-    getCurrentProcess()!.log("calculating done");
-
-    return ["oof", 1];
-});
+    process.end("ok");
+}
