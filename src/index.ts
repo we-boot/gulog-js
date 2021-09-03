@@ -176,6 +176,15 @@ export class GulogProcess<T extends string = string> {
         );
     }
 
+    /**
+     * Creates a new process, with this process set as its parent
+     * @param type The type of process to create, for example: `user-create`, `project-edit` ...
+     * @param initiator Custom data about the initiator of this process. Examples: user, token
+     */
+    fork(type: T, initiator?: object): GulogProcess<T> {
+        return new GulogProcess(type, initiator, this);
+    }
+
     toString(): string {
         if (this.parent) {
             return this.parent.toString() + " > " + `${this.type}#${this.processId || "?"}`;
