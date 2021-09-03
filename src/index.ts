@@ -1,5 +1,13 @@
 import fetch from "node-fetch";
 
+export type InitiatorData = {
+    /**
+     * When userAgent, gulog will detect device type, model ... from this
+     */
+    userAgent?: string;
+    [key: string]: any;
+};
+
 export interface GulogSettings {
     /**
      * The token (created on the gulog panel) for this software
@@ -51,7 +59,7 @@ export class GulogProcess<T extends string = string> {
      * @param initiator Custom data about the initiator of this process. Examples: user, token
      * @param parentProcess The parent process that initiated this process.
      */
-    constructor(type: T, initiator?: object, parentProcess?: GulogProcess, overrideSettings: Partial<GulogSettings> = {}) {
+    constructor(type: T, initiator?: InitiatorData, parentProcess?: GulogProcess, overrideSettings: Partial<GulogSettings> = {}) {
         this.type = type;
         this.parent = parentProcess;
         this.processId = null;
@@ -181,7 +189,7 @@ export class GulogProcess<T extends string = string> {
      * @param type The type of process to create, for example: `user-create`, `project-edit` ...
      * @param initiator Custom data about the initiator of this process. Examples: user, token
      */
-    fork(type: T, initiator?: object): GulogProcess<T> {
+    fork(type: T, initiator?: InitiatorData): GulogProcess<T> {
         return new GulogProcess(type, initiator, this);
     }
 
@@ -201,7 +209,7 @@ export class GulogProcess<T extends string = string> {
  */
 export function spawn<T extends string = string>(
     type: T,
-    initiator?: object,
+    initiator?: InitiatorData,
     parentProcess?: GulogProcess,
     overrideSettings: Partial<GulogSettings> = {}
 ) {
