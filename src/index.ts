@@ -90,14 +90,20 @@ export class GulogProcess<T extends string = string> {
                 initiatorData: initiator,
                 userAgent: agent ?? initiator?.userAgent,
             }),
-        }).then(async (res) => {
-            if (res.ok) {
-                let data = await res.json();
-                this.processId = data.processId;
-            } else {
-                console.error("could not create gulog process: " + (await res.text()));
-            }
-        });
+        })
+            .then(async (res) => {
+                if (res.ok) {
+                    let data = await res.json();
+                    this.processId = data.processId;
+                } else {
+                    console.error("could not create gulog process: " + (await res.text()));
+                }
+            })
+            .finally(() => {
+                if (!this.settings.muteConsole) {
+                    console.log(`[${this.toString()}] spawned`);
+                }
+            });
     }
 
     private customLog(severity: Severity, data: any[]) {
@@ -161,10 +167,9 @@ export class GulogProcess<T extends string = string> {
     }
 
     /**
-     * @param exitCode An exit code describing the process' exit cause, examples: `user-create-failed`, `failed`, `ok`
+     * @param exitCode An exit code describing the process exit cause, examples: `user-create-failed`, `failed`, `ok` or its number id.
      */
-    end(exitCode: string) {
-        console.log(`[${this.toString()}] end!`);
+    end(exitCode: string | number) {
         this.spawnTask.then(() =>
             fetch(this.settings.endpoint + "/api/process", {
                 method: "DELETE",
@@ -176,11 +181,17 @@ export class GulogProcess<T extends string = string> {
                     token: this.settings.token,
                     exitCode: exitCode,
                 }),
-            }).then(async (res) => {
-                if (!res.ok) {
-                    console.warn("could not end gulog process:", await res.text());
-                }
             })
+                .then(async (res) => {
+                    if (!res.ok) {
+                        console.warn("could not end gulog process:", await res.text());
+                    }
+                })
+                .finally(() => {
+                    if (!this.settings.muteConsole) {
+                        console.log(`[${this.toString()}] ended (${exitCode})`);
+                    }
+                })
         );
     }
 
