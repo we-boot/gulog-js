@@ -39,7 +39,7 @@ function removeUndefinedFields(obj: any) {
     Object.keys(obj).forEach((key) => obj[key] === undefined && delete obj[key]);
 }
 
-export class GulogProcess {
+export class GulogProcess<T extends string = string> {
     processId: number | null;
     spawnTask!: Promise<void>;
     type: string;
@@ -51,10 +51,14 @@ export class GulogProcess {
      * @param initiator Custom data about the initiator of this process. Examples: user, token
      * @param parentProcess The parent process that initiated this process.
      */
-    constructor(type: string, initiator?: any, parentProcess?: GulogProcess, overrideSettings: Partial<GulogSettings> = {}) {
+    constructor(type: T, initiator?: object, parentProcess?: GulogProcess, overrideSettings: Partial<GulogSettings> = {}) {
         this.type = type;
         this.parent = parentProcess;
         this.processId = null;
+
+        if (!globalSettings) {
+            throw new Error("Please call Gulog.init() before spawning any process");
+        }
         removeUndefinedFields(overrideSettings);
         this.settings = {
             ...globalSettings,
@@ -125,22 +129,27 @@ export class GulogProcess {
                     }
                 }
             });
+        return this;
     }
 
     log(data: any, ...moreData: any[]) {
         this.customLog(Severity.Info, [data, ...moreData]);
+        return this;
     }
 
     info(data: any, ...moreData: any[]) {
         this.customLog(Severity.Info, [data, ...moreData]);
+        return this;
     }
 
     error(data: any, ...moreData: any[]) {
         this.customLog(Severity.Error, [data, ...moreData]);
+        return this;
     }
 
     warn(data: any, ...moreData: any[]) {
         this.customLog(Severity.Warn, [data, ...moreData]);
+        return this;
     }
 
     /**
@@ -174,4 +183,18 @@ export class GulogProcess {
             return `${this.type}#${this.processId || "?"}`;
         }
     }
+}
+
+/**
+ * @param type The type of process to create, for example:  `user-create`, `project-edit` ...
+ * @param initiator Custom data about the initiator of this process. Examples: user, token
+ * @param parentProcess The parent process that initiated this process.
+ */
+export function spawn<T extends string = string>(
+    type: T,
+    initiator?: object,
+    parentProcess?: GulogProcess,
+    overrideSettings: Partial<GulogSettings> = {}
+) {
+    return new GulogProcess<T>(type, initiator, parentProcess, overrideSettings);
 }

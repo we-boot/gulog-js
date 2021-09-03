@@ -11,11 +11,20 @@ async function delay(ms: number) {
 }
 
 async function main() {
-    let process = new GulogProcess("calculate-math");
+    let process = new GulogProcess("calculate-math", { name: "stijn rogiest" });
     process.log("starting...");
 
     let times = Math.random() * 10 + 2;
     for (let i = 0; i < times; i++) {
+        if (Math.random() < 0.4) {
+            process.warn("calculate takes longer than expected");
+            await delay(1000);
+            if (Math.random() < 0.4) {
+                process.error("could not calculate", { value: Math.random() });
+                await delay(1000);
+                continue;
+            }
+        }
         process.log("calculating ...", i, times);
         await delay(1000);
     }
@@ -26,4 +35,5 @@ async function main() {
     process.end("ok");
 }
 
+main();
 main();
