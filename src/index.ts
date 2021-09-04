@@ -87,8 +87,7 @@ export class GulogProcess<T extends string = string> {
                 name: type,
                 softwareVersion: this.settings.version,
                 token: this.settings.token,
-                initiatorData: initiator,
-                userAgent: agent ?? initiator?.userAgent,
+                initiatorData: { userAgent: agent, ...initiator },
             }),
         })
             .then(async (res) => {
