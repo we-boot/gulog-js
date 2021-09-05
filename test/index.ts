@@ -1,6 +1,6 @@
-import { init, GulogProcess } from "gulog-js";
+import Gulog from "gulog-js";
 
-init({
+Gulog.init({
     token: "pm6t6du6pCKgefUYdM",
     version: "1.0.0",
     endpoint: "http://localhost:3000",
@@ -11,7 +11,7 @@ async function delay(ms: number) {
 }
 
 async function main() {
-    let process = new GulogProcess("calculate-math", { name: "stijn rogiest" });
+    let process = Gulog.spawn("calculate-math", { name: "stijn rogiest" });
     process.log("starting...");
 
     let times = Math.random() * 10 + 2;
@@ -39,7 +39,7 @@ async function main() {
 // main();
 
 async function subProcessTest() {
-    let proc = new GulogProcess("calculate-math");
+    let proc = Gulog.spawn("calculate-math");
 
     proc.log("waiting delay...");
 
