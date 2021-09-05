@@ -35,5 +35,35 @@ async function main() {
     process.end("ok");
 }
 
-main();
-main();
+// main();
+// main();
+
+async function subProcessTest() {
+    let proc = new GulogProcess("calculate-math");
+
+    proc.log("waiting delay...");
+
+    await delay(1000);
+
+    proc.log("done, forking.. and waiting");
+
+    let child = proc.fork("user-delete");
+
+    child.warn("deleting user...");
+
+    child.log("will take 1 second");
+    await delay(1000);
+
+    child.log("deleted user!");
+
+    child.end("ok");
+
+    await delay(1000);
+
+    proc.info("child was done");
+    proc.info("finishing..");
+
+    proc.end("ok");
+}
+
+subProcessTest();

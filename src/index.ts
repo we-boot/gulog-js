@@ -74,20 +74,21 @@ export class GulogProcess<T extends string = string> {
         };
 
         if (parentProcess) {
-            parentProcess.spawnTask.then(() => this.spawn());
+            this.spawnTask = parentProcess.spawnTask.then(() => this.spawn());
         } else {
-            this.spawn();
+            this.spawnTask = this.spawn();
         }
     }
 
-    private spawn() {
+    private async spawn() {
+        let timestamp = new Date().getTime();
+
         let agent = "";
         if ("navigator" in globalThis && "userAgent" in globalThis.navigator) {
             agent = globalThis.navigator.userAgent;
         }
 
-        let timestamp = new Date().getTime();
-        this.spawnTask = fetch(this.settings.endpoint + "/api/process", {
+        let res = await fetch(this.settings.endpoint + "/api/process", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -101,63 +102,59 @@ export class GulogProcess<T extends string = string> {
                 token: this.settings.token,
                 initiatorData: { userAgent: agent, ...this.initiator },
             }),
-        })
-            .then(async (res) => {
-                if (res.ok) {
-                    let data = await res.json();
-                    this.processId = data.processId;
-                    this.softwareId = data.softwareId;
-                } else {
-                    console.error("could not create gulog process: " + (await res.text()));
-                }
-            })
-            .finally(() => {
-                if (!this.settings.muteConsole) {
-                    console.log(`[${this.toString()}] spawned`);
-                }
-            });
+        });
+
+        if (res.ok) {
+            let data = await res.json();
+            this.processId = data.processId;
+            this.softwareId = data.softwareId;
+        } else {
+            console.error("could not create gulog process: " + (await res.text()));
+        }
+
+        if (!this.settings.muteConsole) {
+            console.log(`[${this.toString()}] spawned`);
+        }
     }
 
-    private customLog(severity: Severity, data: any[]) {
+    private async customLog(severity: Severity, data: any[]) {
         let timestamp = new Date().getTime();
-        this.spawnTask
-            .then(() =>
-                fetch(this.settings.endpoint + "/api/log", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        timestamp,
-                        data: data.length === 0 ? data[0] : data,
-                        severity: severity,
-                        processId: this.processId,
-                        token: this.settings.token,
-                    }),
-                })
-            )
-            .then(async (res) => {
-                if (!res.ok) {
-                    console.warn("could not log to gulog:", await res.text(), res.status);
-                }
-            })
-            .finally(() => {
-                if (!this.settings.muteConsole) {
-                    switch (severity) {
-                        default:
-                        case Severity.Info:
-                            console.log(`[${this.toString()}] info`, ...data);
-                            return;
-                        case Severity.Warn:
-                            console.warn(`[${this.toString()}] warn`, ...data);
-                            return;
-                        case Severity.Error:
-                            console.error(`[${this.toString()}] error`, ...data);
-                            return;
-                    }
-                }
-            });
-        return this;
+
+        // Wait for processId
+        await this.spawnTask;
+
+        if (!this.settings.muteConsole) {
+            switch (severity) {
+                default:
+                case Severity.Info:
+                    console.log(`[${this.toString()}] info`, ...data);
+                    break;
+                case Severity.Warn:
+                    console.warn(`[${this.toString()}] warn`, ...data);
+                    break;
+                case Severity.Error:
+                    console.error(`[${this.toString()}] error`, ...data);
+                    break;
+            }
+        }
+
+        let res = await fetch(this.settings.endpoint + "/api/log", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                timestamp,
+                data: data.length === 0 ? data[0] : data,
+                severity: severity,
+                processId: this.processId,
+                token: this.settings.token,
+            }),
+        });
+
+        if (!res.ok) {
+            console.warn("could not log to gulog:", await res.text(), res.status);
+        }
     }
 
     log(data: any, ...moreData: any[]) {
@@ -216,7 +213,7 @@ export class GulogProcess<T extends string = string> {
      * @param type The type of process to create, for example: `user-create`, `project-edit` ...
      * @param initiator Custom data about the initiator of this process. Examples: user, token
      */
-    fork(type: T, initiator?: InitiatorData): GulogProcess<T> {
+    fork<T extends string = string>(type: T, initiator?: InitiatorData): GulogProcess<T> {
         return new GulogProcess(type, initiator, this);
     }
 
