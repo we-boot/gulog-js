@@ -48,10 +48,9 @@ function removeUndefinedFields(obj: any) {
 }
 
 export class GulogProcess<T extends string = string> {
-    processId: number | null;
-    spawnTask!: Promise<void>;
-    type: string;
-    parent?: GulogProcess;
+    processId?: number;
+    softwareId?: number;
+    spawnTask!: Promise<void>; // this promise will fill in processId and softwareId
     settings: Required<GulogSettings>;
 
     /**
@@ -59,11 +58,12 @@ export class GulogProcess<T extends string = string> {
      * @param initiator Custom data about the initiator of this process. Examples: user, token
      * @param parentProcess The parent process that initiated this process.
      */
-    constructor(type: T, initiator?: InitiatorData, parentProcess?: GulogProcess, overrideSettings: Partial<GulogSettings> = {}) {
-        this.type = type;
-        this.parent = parentProcess;
-        this.processId = null;
-
+    constructor(
+        public type: T,
+        public initiator?: InitiatorData,
+        public parentProcess?: GulogProcess,
+        overrideSettings: Partial<GulogSettings> = {}
+    ) {
         if (!globalSettings) {
             throw new Error("Please call Gulog.init() before spawning any process");
         }
@@ -73,6 +73,14 @@ export class GulogProcess<T extends string = string> {
             ...overrideSettings,
         };
 
+        if (parentProcess) {
+            parentProcess.spawnTask.then(() => this.spawn());
+        } else {
+            this.spawn();
+        }
+    }
+
+    private spawn() {
         let agent = "";
         if ("navigator" in globalThis && "userAgent" in globalThis.navigator) {
             agent = globalThis.navigator.userAgent;
@@ -86,16 +94,19 @@ export class GulogProcess<T extends string = string> {
             },
             body: JSON.stringify({
                 timestamp,
-                name: type,
+                name: this.type,
+                parentProcessId: this.parentProcess?.processId,
+                parentSoftwareId: this.parentProcess?.softwareId,
                 softwareVersion: this.settings.version,
                 token: this.settings.token,
-                initiatorData: { userAgent: agent, ...initiator },
+                initiatorData: { userAgent: agent, ...this.initiator },
             }),
         })
             .then(async (res) => {
                 if (res.ok) {
                     let data = await res.json();
                     this.processId = data.processId;
+                    this.softwareId = data.softwareId;
                 } else {
                     console.error("could not create gulog process: " + (await res.text()));
                 }
@@ -210,8 +221,8 @@ export class GulogProcess<T extends string = string> {
     }
 
     toString(): string {
-        if (this.parent) {
-            return this.parent.toString() + " > " + `${this.type}#${this.processId || "?"}`;
+        if (this.parentProcess) {
+            return this.parentProcess.toString() + " > " + `${this.type}#${this.processId || "?"}`;
         } else {
             return `${this.type}#${this.processId || "?"}`;
         }
