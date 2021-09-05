@@ -107,9 +107,9 @@ export class Process<T extends string = string> {
             console.error("could not create gulog process: " + (await res.text()));
         }
 
-        if (!this.settings.muteConsole) {
-            console.log(`[${this.toString()}] spawned`);
-        }
+        // if (!this.settings.muteConsole) {
+        //     console.log(`[${this.toString()}] spawned`);
+        // }
     }
 
     private async customLog(severity: Severity, data: any[]) {
@@ -187,29 +187,29 @@ export class Process<T extends string = string> {
         this.exitCode = exitCode;
 
         let timestamp = new Date().getTime();
-        this.spawnTask.then(() =>
-            fetch(this.settings.endpoint + "/api/process", {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    timestamp,
-                    processId: this.processId,
-                    token: this.settings.token,
-                    exitCode: exitCode,
-                }),
-            })
-                .then(async (res) => {
+        this.spawnTask.then(
+            () =>
+                fetch(this.settings.endpoint + "/api/process", {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        timestamp,
+                        processId: this.processId,
+                        token: this.settings.token,
+                        exitCode: exitCode,
+                    }),
+                }).then(async (res) => {
                     if (!res.ok) {
                         console.warn("could not end gulog process:", await res.text());
                     }
                 })
-                .finally(() => {
-                    if (!this.settings.muteConsole) {
-                        console.log(`[${this.toString()}] ended (${exitCode})`);
-                    }
-                })
+            // .finally(() => {
+            // if (!this.settings.muteConsole) {
+            //     console.log(`[${this.toString()}] ended (${exitCode})`);
+            // }
+            // })
         );
     }
 
