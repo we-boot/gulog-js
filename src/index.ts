@@ -8,7 +8,7 @@ export type InitiatorData = {
     [key: string]: any;
 };
 
-export interface GulogSettings {
+export interface Settings {
     /**
      * The token (created on the gulog panel) for this software
      */
@@ -24,9 +24,9 @@ export interface GulogSettings {
     endpoint?: string;
 }
 
-let globalSettings: Required<GulogSettings>;
+let globalSettings: Required<Settings>;
 
-export function init(settings: GulogSettings) {
+export function init(settings: Settings) {
     removeUndefinedFields(settings);
     globalSettings = {
         endpoint: "https://gulog.io",
@@ -47,23 +47,18 @@ function removeUndefinedFields(obj: any) {
     Object.keys(obj).forEach((key) => obj[key] === undefined && delete obj[key]);
 }
 
-export class GulogProcess<T extends string = string> {
+export class Process<T extends string = string> {
     processId?: number;
     softwareId?: number;
     spawnTask!: Promise<void>; // this promise will fill in processId and softwareId
-    settings: Required<GulogSettings>;
+    settings: Required<Settings>;
 
     /**
      * @param type The type of process to create, for example:  `user-create`, `project-edit` ...
      * @param initiator Custom data about the initiator of this process. Examples: user, token
      * @param parentProcess The parent process that initiated this process.
      */
-    constructor(
-        public type: T,
-        public initiator?: InitiatorData,
-        public parentProcess?: GulogProcess,
-        overrideSettings: Partial<GulogSettings> = {}
-    ) {
+    constructor(public type: T, public initiator?: InitiatorData, public parentProcess?: Process, overrideSettings: Partial<Settings> = {}) {
         if (!globalSettings) {
             throw new Error("Please call Gulog.init() before spawning any process");
         }
@@ -212,8 +207,8 @@ export class GulogProcess<T extends string = string> {
      * @param type The type of process to create, for example: `user-create`, `project-edit` ...
      * @param initiator Custom data about the initiator of this process. Examples: user, token
      */
-    fork<T extends string = string>(type: T, initiator?: InitiatorData): GulogProcess<T> {
-        return new GulogProcess(type, initiator, this);
+    fork<T extends string = string>(type: T, initiator?: InitiatorData): Process<T> {
+        return new Process(type, initiator, this);
     }
 
     toString(): string {
@@ -233,8 +228,8 @@ export class GulogProcess<T extends string = string> {
 export function spawn<T extends string = string>(
     type: T,
     initiator?: InitiatorData,
-    parentProcess?: GulogProcess,
-    overrideSettings: Partial<GulogSettings> = {}
+    parentProcess?: Process,
+    overrideSettings: Partial<Settings> = {}
 ) {
-    return new GulogProcess<T>(type, initiator, parentProcess, overrideSettings);
+    return new Process<T>(type, initiator, parentProcess, overrideSettings);
 }
