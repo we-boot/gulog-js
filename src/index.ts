@@ -73,16 +73,15 @@ export class GulogProcess<T extends string = string> {
             ...overrideSettings,
         };
 
+        let timestamp = new Date().getTime();
         if (parentProcess) {
-            this.spawnTask = parentProcess.spawnTask.then(() => this.spawn());
+            this.spawnTask = parentProcess.spawnTask.then(() => this.spawn(timestamp));
         } else {
-            this.spawnTask = this.spawn();
+            this.spawnTask = this.spawn(timestamp);
         }
     }
 
-    private async spawn() {
-        let timestamp = new Date().getTime();
-
+    private async spawn(timestamp: number) {
         let agent = "";
         if ("navigator" in globalThis && "userAgent" in globalThis.navigator) {
             agent = globalThis.navigator.userAgent;
