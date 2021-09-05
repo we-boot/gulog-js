@@ -218,9 +218,9 @@ export class GulogProcess<T extends string = string> {
 
     toString(): string {
         if (this.parentProcess) {
-            return this.parentProcess.toString() + " > " + `${this.type}#${this.processId || "?"}`;
+            return this.parentProcess.toString() + ">" + `${this.type}:${this.processId || "?"}`;
         } else {
-            return `${this.type}#${this.processId || "?"}`;
+            return `${this.type}:${this.processId || "?"}`;
         }
     }
 }
