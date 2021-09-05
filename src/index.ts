@@ -78,12 +78,14 @@ export class GulogProcess<T extends string = string> {
             agent = globalThis.navigator.userAgent;
         }
 
+        let timestamp = new Date().getTime();
         this.spawnTask = fetch(this.settings.endpoint + "/api/process", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
+                timestamp,
                 name: type,
                 softwareVersion: this.settings.version,
                 token: this.settings.token,
@@ -106,6 +108,7 @@ export class GulogProcess<T extends string = string> {
     }
 
     private customLog(severity: Severity, data: any[]) {
+        let timestamp = new Date().getTime();
         this.spawnTask
             .then(() =>
                 fetch(this.settings.endpoint + "/api/log", {
@@ -114,6 +117,7 @@ export class GulogProcess<T extends string = string> {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
+                        timestamp,
                         data: data.length === 0 ? data[0] : data,
                         severity: severity,
                         processId: this.processId,
@@ -169,6 +173,7 @@ export class GulogProcess<T extends string = string> {
      * @param exitCode An exit code describing the process exit cause, examples: `user-create-failed`, `failed`, `ok` or its number id.
      */
     end(exitCode: string | number) {
+        let timestamp = new Date().getTime();
         this.spawnTask.then(() =>
             fetch(this.settings.endpoint + "/api/process", {
                 method: "DELETE",
@@ -176,6 +181,7 @@ export class GulogProcess<T extends string = string> {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
+                    timestamp,
                     processId: this.processId,
                     token: this.settings.token,
                     exitCode: exitCode,
