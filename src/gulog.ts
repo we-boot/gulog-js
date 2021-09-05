@@ -52,6 +52,7 @@ export class Process<T extends string = string> {
     softwareId?: number;
     spawnTask!: Promise<void>; // this promise will fill in processId and softwareId
     settings: Required<Settings>;
+    exitCode?: string | number;
 
     /**
      * @param type The type of process to create, for example:  `user-create`, `project-edit` ...
@@ -171,10 +172,20 @@ export class Process<T extends string = string> {
         return this;
     }
 
+    get ended() {
+        return this.exitCode !== undefined;
+    }
+
     /**
      * @param exitCode An exit code describing the process exit cause, examples: `user-create-failed`, `failed`, `ok` or its number id.
      */
     end(exitCode: string | number) {
+        if (this.ended) {
+            console.warn("end was called twice for process " + this.toString());
+            return;
+        }
+        this.exitCode = exitCode;
+
         let timestamp = new Date().getTime();
         this.spawnTask.then(() =>
             fetch(this.settings.endpoint + "/api/process", {
