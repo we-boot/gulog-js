@@ -1,5 +1,3 @@
-import fetch from "node-fetch";
-
 export type InitiatorData = {
     /**
      * When userAgent, gulog will detect device type, model ... from this
